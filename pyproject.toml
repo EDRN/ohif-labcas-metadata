@@ -1,0 +1,47 @@
+[project]
+name = 'ohif.labcas.metadata'
+dynamic = ['version']
+requires-python = '>=3.9'
+dependencies = [
+    'pysolr ~= 3.9.0',
+]
+authors = [
+    {name = 'Sean Kelly', email='kelly@seankelly.biz'}
+]
+description = 'Metadata loader for LabCAS to enable OHIF viewers'
+readme = 'README.md'
+keywords = ['data', 'catalog', 'archive', 'edrn', 'labcas', 'cancer', 'nih', 'nci', 'jpl', 'nasa']
+classifiers = [
+    'Development Status :: 2 - Pre-Alpha',
+    'Intended Audience :: Healthcare Industry',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: Apache Software License',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3',
+]
+license = {file = 'LICENSE.md'}
+
+
+[project.urls]
+Homepage = 'https://github.com/EDRN/ohif.labcas.metadata'
+Issues = 'https://github.com/EDRN/ohif.labcas.metadata/issues'
+
+# src/jpl/labcas/ohif/metadata
+
+[project.scripts]
+ohif-labcas-loader = 'jpl.labcas.ohif.metadata.main:main'
+
+
+[tool.hatch.version]
+path = 'src/jpl/labcas/ohif/metadata/VERSION.txt'
+pattern = '(?P<version>.+)'
+
+
+[tool.hatch.build.targets.wheel]
+packages = ['src/jpl']
+
+
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'

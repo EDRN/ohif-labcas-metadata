@@ -1,0 +1,23 @@
+{
+   "folders" : [
+      {
+         "file_exclude_patterns" : [
+            "*.sublime-*",
+            ".DS_Store",
+            "dicom-json-generator.js"
+         ],
+         "folder_exclude_patterns" : [
+            "__pycache__",
+            ".venv",
+            "venv",
+            "dist",
+            "build",
+            "*.egg-info",
+            "build",
+            "testdata",
+            "node_modules"
+         ],
+         "path" : "."
+      }
+   ]
+}
