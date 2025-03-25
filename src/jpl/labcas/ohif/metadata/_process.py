@@ -100,8 +100,11 @@ def _apply_metadata_updates(solr: pysolr.Solr, metadata: dict, urls: list):
                 'id': doc['id'],
                 **{k: {'set': v} for k, v in updates.items()}
             }
-            solr.add([payload], commit=True)
-            break  # Only update first doc; you'd think rows=1 would do it but defensive
+            try:
+                solr.add([payload], commit=True)
+                break  # Only update first doc; you'd think rows=1 would do it but defensive
+            except Exception as ex:
+                _logger.exception('🌞 Solr failure %s adding «%s»', str(ex), [payload])
 
 
 def _clean_metadata(metadata: dict) -> dict:
