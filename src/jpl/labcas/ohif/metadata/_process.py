@@ -87,13 +87,15 @@ def _generate_metadata(folder: str, prefix: str, dicomjs: str) -> tuple:
 def _apply_metadata_updates(solr: pysolr.Solr, metadata: dict, urls: list):
     _logger.info('💄 Applying metadata updates to files in %r', urls)
     for url in urls:
-        # We need to search Solr for the `FileName` field so let's strip off the last item
+        # We need to search Solr for the `name` field so let's strip off the last item
+        #
+        # FileName has the "virtual" file name with the event ID, which we can't use
         fn = url.split('/')[-1]
         updates = metadata.copy()
         updates['url'] = url
 
-        _logger.debug('🔎 Searching Solr for FileName %s', fn)
-        for doc in solr.search(f'FileName:{fn}', rows=1):
+        _logger.debug('🔎 Searching Solr for name %s', fn)
+        for doc in solr.search(f'name:{fn}', rows=1):
             payload = {
                 'id': doc['id'],
                 **{k: {'set': v} for k, v in updates.items()}
