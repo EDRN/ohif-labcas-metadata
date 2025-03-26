@@ -95,7 +95,9 @@ def _apply_metadata_updates(solr: pysolr.Solr, metadata: dict, urls: list):
         updates['url'] = url
 
         _logger.debug('🔎 Searching Solr for name %s', fn)
-        for doc in solr.search(f'name:{fn}', rows=1):
+        # The "AND NOT url:*" enables us to only do the ones that need the additional metadata,
+        # skipping those that already have it.
+        for doc in solr.search(f'name:{fn} AND NOT url:*', rows=1):
             payload = {
                 'id': doc['id'],
                 **{k: {'set': v} for k, v in updates.items()}
