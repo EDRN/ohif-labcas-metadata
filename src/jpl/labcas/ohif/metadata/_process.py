@@ -76,6 +76,7 @@ def _generate_metadata(folder: str, prefix: str, dicomjs: str) -> tuple:
     This returns a tuple of metadata (dict) and URLs (list).
     '''
     _logger.info('🧠 Generating metadata for folder %s', folder)
+    name = None
     try:
         tf = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
         tf.close()
@@ -87,7 +88,6 @@ def _generate_metadata(folder: str, prefix: str, dicomjs: str) -> tuple:
                 '💣 The DICOM generator failed on %s; stdout=%s, stderr=%s; continuing on',
                 folder, cp.stdout, cp.stderr
             )
-            os.unlink(name)
             return {}, []
         with open(name, 'r') as io:
             return _collapse(folder, json.load(io))
@@ -97,6 +97,9 @@ def _generate_metadata(folder: str, prefix: str, dicomjs: str) -> tuple:
     except json.JSONDecodeError:
         _logger.exception('💣 The DICOM generator produced bad JSON working on folder %s', folder)
         return {}, []
+    finally:
+        if name is not None:
+            os.unlink(name)
 
 
 def _apply_metadata_updates(solr: pysolr.Solr, metadata: dict, urls: list):
