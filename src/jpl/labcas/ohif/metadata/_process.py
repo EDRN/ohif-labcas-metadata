@@ -7,6 +7,21 @@ import logging, pysolr, os, subprocess, tempfile, os.path, json
 
 _logger = logging.getLogger(__name__)
 
+# These keys we strip out because they're problematic:
+#
+# - `PatientName` I've see a single valued string containing a dict with a single key `Alphabetic`
+#    whose value is a string — what even is that? 😐
+# - `ROIContourSequence` its value is a massive 1.7 million characters long
+# - `StructureSetROISequence` value is a nested JSON structure so strip it
+# - `ReferencedFrameOfReferenceSequence` vlaue is 13160 characters long
+
+_forbidden_keys = set([
+    'PatientName',
+    'ROIContourSequence',
+    'StructureSetROISequence',
+    'ReferencedFrameOfReferenceSequence'
+])
+
 
 def _find_dcm_dirs(top: str):
     '''Generate any folders that contain at least one file ending in `.dcm` regardless of case.'''
@@ -117,15 +132,15 @@ def _clean_metadata(metadata: dict) -> dict:
     - Remove any keys whose values are empty strings (I've seen `AccessionNumber`)
     - Turn any keys whose values are strings into lists of single strings (like most of them)
     - Leave any lists of multiple values intact (like `ImageType`)
-    - Delete `PatientName` completely; I've see a single valued string containing a dict with
-      a single key `Alphabetic` whose value is a string — what even is that? 😐
     '''
     cleaned = {}
     for k, v in metadata.items():
         if v == '': continue
-        if k == 'PatientName': continue
+        if k in _forbidden_keys: continue
         if isinstance(v, str):
             cleaned[k] = [v]
+        elif isinstance(v, int):
+            cleaned[k] = [str(v)]
         else:
             cleaned[k] = v
     return cleaned
