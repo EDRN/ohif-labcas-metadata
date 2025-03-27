@@ -19,7 +19,9 @@ _forbidden_keys = set([
     'PatientName',
     'ROIContourSequence',
     'StructureSetROISequence',
-    'ReferencedFrameOfReferenceSequence'
+    'ReferencedFrameOfReferenceSequence',
+    'ConceptNameCodeSequence',
+    'ReferencedSeriesSequence',
 ])
 
 
