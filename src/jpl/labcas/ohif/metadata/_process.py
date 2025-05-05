@@ -189,7 +189,7 @@ def _apply_metadata_to_rs_file(solr: pysolr.Solr, metadata: dict, rs_file: str):
     _logger.info('Adding `ohif_dcm_json` field (with %d characters) to Solr file %s', len(serialized), rs_file)
     updated = False
     for doc in solr.search(f'name:{rs_file}', rows=1):
-        payload = {'id': doc['id'], 'ohif_dcm_json': serialized}
+        payload = {'id': doc['id'], 'ohif_dcm_json': {'set': serialized}}
         try:
             solr.add([payload], commit=True)
             updated = True
