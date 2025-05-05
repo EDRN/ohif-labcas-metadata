@@ -31,6 +31,7 @@ Issues = 'https://github.com/EDRN/ohif.labcas.metadata/issues'
 
 [project.scripts]
 ohif-labcas-loader = 'jpl.labcas.ohif.metadata.main:main'
+ohif-labcas-postprocessor = 'jpl.labcas.ohif.metadata.postprocessing:main'
 
 
 [tool.hatch.version]

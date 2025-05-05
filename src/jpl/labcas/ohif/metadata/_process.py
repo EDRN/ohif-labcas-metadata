@@ -3,7 +3,7 @@
 '''🔬 OHIF LabCAS metadata loader processes DICOM files, extracts metadata, and loads it into Solr.'''
 
 
-import logging, pysolr, os, subprocess, tempfile, os.path, json
+import logging, pysolr, os, subprocess, tempfile, os.path, json, glob
 
 _logger = logging.getLogger(__name__)
 
@@ -29,6 +29,13 @@ def _find_dcm_dirs(top: str):
     '''Generate any folders that contain at least one file ending in `.dcm` regardless of case.'''
     for root, _, files in os.walk(top):
         if any(f.lower().endswith('.dcm') for f in files):
+            yield root
+
+
+def _find_rs_dirs(top: str):
+    '''Generate any folders that contain at least one file matching `RS*.dcm` regardless of case.'''
+    for root, _, files in os.walk(top):
+        if any(f.startswith('RS') and f.lower().endswith('.dcm') for f in files):
             yield root
 
 
@@ -154,7 +161,7 @@ def _clean_metadata(metadata: dict) -> dict:
 def process(solr: pysolr.Solr, folder: str, prefix: str, dicomjs: str):
     '''Process using `solr` on `folder` with `prefix` and the `dicomjs`.
 
-    This generated additional metadata for DICOM files and fills `solr` with it.
+    This generates additional metadata for DICOM files and fills `solr` with it.
     '''
     _logger.info('🏁 Beginning processing of %s with prefix %s using Solr %r', folder, prefix, solr)
 
@@ -163,3 +170,49 @@ def process(solr: pysolr.Solr, folder: str, prefix: str, dicomjs: str):
         metadata, urls = _generate_metadata(f, prefix, dicomjs)
         metadata = _clean_metadata(metadata)
         _apply_metadata_updates(solr, metadata, urls)
+
+
+def _locate_rs_file(folder: str) -> str:
+    '''The `folder` contains an `RS*.dcm` file so give its exact name.'''
+    pattern = os.path.join(folder, 'RS*.dcm')
+    matches = glob.glob(pattern)
+    if not matches: return None
+    return os.path.basename(matches[0])
+
+
+def _apply_metadata_to_rs_file(solr: pysolr.Solr, metadata: dict, rs_file: str):
+    '''Look up `rs_file` in Solr and write the `metadata` as a JSON serialized string into `solr`.
+
+    We are to use the Solr field `ohif_dcm_json`. The `solr` is for the `files` core already.
+    '''
+    serialized = json.dumps(metadata)
+    _logger.info('Adding `ohif_dcm_json` field (with %d characters) to Solr file %s', len(serialized), rs_file)
+    updated = False
+    for doc in solr.search(f'name:{rs_file}', rows=1):
+        payload = {'id': doc['id'], 'ohif_dcm_json': serialized}
+        try:
+            solr.add([payload], commit=True)
+            updated = True
+            break  # Only update first doc; you'd think rows=1 would do it but doing some defensive dev
+        except Exception as ex:
+            _logger.exception('🌞 Solr failure %s writing ohif_dcm_json payload «%s»', str(ex), [payload])
+    if not updated:
+        _logger.info('No matches for name:%s in Solr, so moving on', rs_file)
+
+
+def postprocess(solr: pysolr.Solr, folder: str, prefix: str, dicomjs: str):
+    '''Postprocess using `solr` on `folder` with `prefix` and the `dicomjs`.
+
+    This generates huge JSON dictionaries and puts them into specific files in Solr.
+    '''
+    _logger.info('🏁 Beginning postprocessing of %s with prefix %s using Solr %r', folder, prefix, solr)
+
+    for f in _find_rs_dirs(folder):
+        _logger.debug('Found a folder with an RS*.dcm file in it: %s', f)
+        metadata, _ = _generate_metadata(f, prefix, dicomjs)
+        metadata = _clean_metadata(metadata)
+        rs_file = _locate_rs_file(f)
+        if not rs_file:
+            _logger.warning('The RS*.dcm file disappeared from %s; moving on', f)
+            continue
+        _apply_metadata_to_rs_file(solr, metadata, rs_file)
